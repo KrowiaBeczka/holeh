@@ -657,6 +657,7 @@ function self:LoadConfig(name)
 end
 
 
+
     function self:SaveConfig(name)
         if not self:GetConfig(name) then
             self:SendNotification('Error saving config: Config does not exist. ('..tostring(name)..')', 5, c3new(1,0,0));
