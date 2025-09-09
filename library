@@ -617,50 +617,45 @@ function library:init()
     end
 
 function self:LoadConfig(name)
-    local configPath = self.cheatname .. '/' .. self.gamename .. '/configs/' .. name .. self.fileext
+    local path = self.cheatname .. "/" .. self.gamename .. "/configs/" .. name .. self.fileext
 
-    if not isfile(configPath) then
-        self:SendNotification('Error loading config: File does not exist. (' .. tostring(name) .. ')', 5, c3new(1, 0, 0))
+    if not isfile(path) then
+        self:SendNotification('Error loading config: File does not exist. ('..tostring(name)..')', 5, c3new(1,0,0))
         return
     end
 
-    local fileContent = readfile(configPath)
-    if not fileContent then
-        self:SendNotification('Error loading config: Unable to read file. (' .. tostring(name) .. ')', 5, c3new(1, 0, 0))
-        return
-    end
+    local success, err = pcall(function()
+        local content = readfile(path)
+        local cfg = http:JSONDecode(content)
 
-    local s, e = pcall(function()
-        setByConfig = true
-        local decodedData = http:JSONDecode(fileContent)
-        for flag, value in next, decodedData do
-            local option = library.options[flag]
-            if option ~= nil then
+        for flag, value in pairs(cfg) do
+            local option = self.options[flag]
+            if option then
                 if option.class == 'toggle' then
-                    option:SetState(value == nil and false or (value == 1 and true or false))
+                    option.state = value == 1
                 elseif option.class == 'slider' then
-                    option:SetValue(value == nil and 0 or value)
+                    option.value = value
                 elseif option.class == 'bind' then
-                    option:SetBind(value == nil and 'none' or (utility:HasProperty(Enum.KeyCode, value) and Enum.KeyCode[value] or Enum.UserInputType[value]))
+                    option.bind = { Name = value }
                 elseif option.class == 'color' then
-                    option:SetColor(value == nil and c3new(1,1,1) or c3new(value[1], value[2], value[3]))
-                    option:SetTrans(value == nil and 1 or value[4])
+                    option.color = { r = value[1], g = value[2], b = value[3] }
+                    option.trans = value[4]
                 elseif option.class == 'list' then
-                    option:Select(value == nil and '' or value)
+                    option.selected = value
                 elseif option.class == 'box' then
-                    option:SetInput(value == nil and '' or value)
+                    option.input = value
                 end
             end
         end
-        setByConfig = false
     end)
 
-    if s then
-        self:SendNotification('Successfully loaded config: ' .. name, 5, c3new(0, 1, 0))
+    if not success then
+        self:SendNotification('Error loading config: '..tostring(err), 5, c3new(1,0,0))
     else
-        self:SendNotification('Error loading config: ' .. tostring(e) .. '. (' .. tostring(name) .. ')', 5, c3new(1, 0, 0))
+        self:SendNotification('Config loaded successfully! ('..tostring(name)..')', 3, c3new(0,1,0))
     end
 end
+
 
     function self:SaveConfig(name)
         if not self:GetConfig(name) then
