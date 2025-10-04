@@ -1,3 +1,4 @@
+-- tokio lib
 local startupArgs = ({...})[1] or {}
 
 if getgenv().library ~= nil then
@@ -1737,9 +1738,10 @@ function library:init()
         end
         -------------------------
 
+   
+        -------------------------
         ---- Create Dropdown ----
         do
-            // ...existing code...
             -- Default Objects
             do
                 local objs = window.dropdown.objects;
@@ -1754,11 +1756,11 @@ function library:init()
                     Parent = window.objects.background;
                 })
 
-                -- new scroll-related fields
-                objs.scroll = 0                     -- current scroll offset in pixels
-                objs.itemHeight = 18                -- height of each list item (matches creation below)
-                objs.padding = 2                    -- padding between items
-                objs.maxVisible = window.dropdown.max or 5 -- how many items visible at once
+                -- scroll fields (new)
+                objs.scroll = 0                -- current scroll offset in pixels
+                objs.itemHeight = 18           -- per-item height in pixels (matches creation below)
+                objs.padding = 2               -- vertical padding between items
+                objs.maxVisible = window.dropdown.max or 5
 
                 objs.border1 = utility:Draw('Square', {
                     Size = newUDim2(1,2,1,2);
@@ -1767,9 +1769,6 @@ function library:init()
                     ZIndex = z-1;
                     Parent = objs.background;
                 })
--- ...existing code...
-            end
-
 
                 objs.border2 = utility:Draw('Square', {
                     Size = newUDim2(1,2,1,2);
@@ -1789,7 +1788,6 @@ function library:init()
 
             end
 
-   // ...existing code...
             function window.dropdown:Refresh()
                 if self.selected ~= nil then
                     local list = self.selected
@@ -1855,35 +1853,45 @@ function library:init()
 
                                 end
                             end)
-                            self.objects.values[idx] = valueObject
+                            objs.values[idx] = valueObject
                         end
                     end
 
-                    -- update texts & positions using scroll
+                    -- update texts & selection transparency
+                    for idx, val in next, list.values do
+                        local valueObj = objs.values[idx]
+                        if valueObj then
+                            valueObj.text.Text = tostring(val)
+                            valueObj.background.Transparency = (typeof(list.selected) == 'table' and table.find(list.selected, val) or list.selected == val) and 1 or 0
+                        end
+                    end
+
+                    -- layout items using scroll offset
                     local y = 2
-                    for idx, value in next, list.values do
+                    for idx = 1, #list.values do
+                        local value = list.values[idx]
                         local valueObj = objs.values[idx]
                         if valueObj then
                             valueObj.background.Visible = value ~= nil
                             if value ~= nil then
-                                valueObj.text.Text = value
                                 valueObj.background.Position = newUDim2(0,2,0, y - (objs.scroll or 0));
-                                y = y + valueObj.background.Object.Size.Y + pad;
+                                valueObj.text.Text = tostring(value);
+                                y = y + itemH + pad;
                             end
                         end
                     end
 
-                    -- compute visible area and apply clipping visibility
+                    -- compute visible height (limit to maxVisible items)
                     local visibleCount = math.min(#list.values, visibleMax)
                     local visibleHeight = (itemH + pad) * visibleCount + 2
                     objs.background.Size = newUDim2(1,-6,0, visibleHeight)
 
-                    -- clamp scroll
+                    -- clamp scroll to content bounds
                     local totalHeight = math.max(0, y)
                     local maxScroll = math.max(0, totalHeight - visibleHeight)
-                    objs.scroll = math.clamp(objs.scroll or 0, 0, maxScroll)
+                    objs.scroll = clamp(objs.scroll or 0, 0, maxScroll)
 
-                    -- final visibility clamp per item
+                    -- final per-item visibility clamp (hide items outside visible window)
                     for idx, valueObj in next, objs.values do
                         if valueObj and valueObj.background then
                             local top = valueObj.background.Object.Position.Y - objs.background.Object.Position.Y
@@ -1895,41 +1903,57 @@ function library:init()
                 end
             end
 
-        
-window.dropdown:Refresh();
+            window.dropdown:Refresh();
 
-            -- add mouse-wheel scrolling for this window's dropdown
+            -- mouse-wheel scrolling for dropdown
             utility:Connection(inputservice.InputChanged, function(inp)
                 if inp.UserInputType == Enum.UserInputType.MouseWheel then
                     local dd = window.dropdown
-                    local bg = dd.objects.background
+                    local bg = dd.objects and dd.objects.background
                     if bg and bg.Object and bg.Visible and dd.selected then
                         local list = dd.selected
                         local objs = dd.objects
-                        -- compute sizes to know max scroll
                         local itemH = objs.itemHeight or 18
                         local pad = objs.padding or 2
                         local total = 2
-                        for idx=1,#list.values do
+                        for i=1,#list.values do
                             total = total + itemH + pad
                         end
                         local visible = bg.Object.Size.Y
                         local maxScroll = math.max(0, total - visible)
 
-                        -- inp.Position.Z is wheel delta in many clients; fallback to Position.Y if nil
                         local delta = 0
                         pcall(function() delta = inp.Position.Z end)
                         if delta == 0 then
                             pcall(function() delta = inp.Position.Y end)
                         end
-                        local scrollStep = (itemH + pad) * (delta > 0 and 1 or -1) * 1 -- adjust sensitivity here
-                        -- invert because typical wheel up -> positive Z, we want scroll up (decrease offset)
-                        objs.scroll = math.clamp((objs.scroll or 0) - (delta * 20), 0, maxScroll)
+                        -- adjust sensitivity here (20 px per wheel delta)
+                        objs.scroll = clamp((objs.scroll or 0) - (delta * 20), 0, maxScroll)
 
                         dd:Refresh()
                     end
                 end
             end)
+
+        end
+        -------------------------
+
+
+        local function tooltip(option)
+            utility:Connection(option.objects.holder.MouseEnter, function()
+                tooltipObjects.background.Visible = (not (option.tooltip == '' or option.tooltip == nil)) and true or false;
+                tooltipObjects.riskytext.Visible = option.risky;
+                tooltipObjects.text.Position = option.risky and newUDim2(0,60,0,0) or newUDim2(0,3,0,0)
+                tooltipObjects.text.Text = tostring(option.tooltip);
+                library.CurrentTooltip = option;
+            end)
+            utility:Connection(option.objects.holder.MouseLeave, function()
+                if library.CurrentTooltip == option then
+                    library.CurrentTooltip = nil;
+                    tooltipObjects.background.Visible = false
+                end
+            end)
+        end
 
 
         local visValues = {};
