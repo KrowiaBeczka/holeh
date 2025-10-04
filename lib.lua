@@ -3824,226 +3824,214 @@ function library:init()
                 end
 
                 -- // Text Box
-                function section:AddBox(data)
-                    local box = {
-                        class = 'box';
-                        flag = data.flag;
-                        text = '';
-                        input = '';
-                        order = #self.options+1;
-                        callback = function() end;
-                        enabled = true;
-                        focused = false;
-                        risky = false;
-                        objects = {};
-                    };
+ -- ADD: allow chaining a small Box on a Button (SectionX:AddButton(...):AddBox(...))
+                    function button:AddBox(data)
+                        local box = {
+                            class = 'box';
+                            flag = data.flag;
+                            text = data.text or '';
+                            input = data.input or '';
+                            order = #self.subbuttons+1;
+                            callback = data.callback or function() end;
+                            enabled = true;
+                            focused = false;
+                            risky = data.risky or false;
+                            objects = {};
+                        };
 
-                    local blacklist = {'objects', 'dragging'};
-                    for i,v in next, data do
-                        if not table.find(blacklist, i) and box[i] ~= nil then
-                            box[i] = v;
-                        end
-                    end
-                    
-                    table.insert(self.options, box)
-
-                    if box.flag then
-                        library.flags[box.flag] = box.input;
-                        library.options[box.flag] = box;
-                    end
-
-                    --- Create Objects ---
-                    do
-                        local objs = box.objects;
-                        local z = library.zindexOrder.window+25;
-
-                        objs.holder = utility:Draw('Square', {
-                            Size = newUDim2(1,0,0,37);
-                            Transparency = 0;
-                            ZIndex = z+4;
-                            Parent = section.objects.optionholder;
-                        })
-
-                        objs.background = utility:Draw('Square', {
-                            Size = newUDim2(1,-4,0,15);
-                            Position = newUDim2(0,2,1,-17);
-                            ThemeColor = 'Option Background';
-                            ZIndex = z+2;
-                            Parent = objs.holder;
-                        })
-
-                        objs.border1 = utility:Draw('Square', {
-                            Size = newUDim2(1,2,1,2);
-                            Position = newUDim2(0,-1,0,-1);
-                            ThemeColor = 'Option Border 1';
-                            ZIndex = z+1;
-                            Parent = objs.background;
-                        })
-
-                        objs.border2 = utility:Draw('Square', {
-                            Size = newUDim2(1,2,1,2);
-                            Position = newUDim2(0,-1,0,-1);
-                            ThemeColor = 'Option Border 2';
-                            ZIndex = z;
-                            Parent = objs.border1;
-                        })
-
-                        objs.gradient = utility:Draw('Image', {
-                            Size = newUDim2(1,0,1,0);
-                            Data = library.images.gradientp90;
-                            Transparency = .65;
-                            ZIndex = z+4;
-                            Parent = objs.background;
-                        })
-
-                        objs.text = utility:Draw('Text', {
-                            Position = newUDim2(0,2,0,2);
-                            ThemeColor = box.risky and 'Risky Text Enabled' or 'Option Text 2';
-                            Size = 13;
-                            Font = 2;
-                            ZIndex = z+1;
-                            Outline = true;
-                            Parent = objs.holder;
-                        })
-
-                        objs.inputText = utility:Draw('Text', {
-                            Position = newUDim2(0,2,0,0);
-                            ThemeColor = 'Option Text 2';
-                            Size = 13;
-                            Font = 2;
-                            ZIndex = z+5;
-                            Outline = true;
-                            Parent = objs.background;
-                        })
-
-                        utility:Connection(objs.holder.MouseEnter, function()
-                            objs.border1.ThemeColor = 'Accent';
-                        end)
-
-                        utility:Connection(objs.holder.MouseLeave, function()
-                            objs.border1.ThemeColor = 'Option Border 1';
-                        end)
-
-                        utility:Connection(objs.holder.MouseButton1Down, function()
-                            if box.focused then
-                                box:ReleaseFocus();
-                                actionservice:UnbindAction('FreezeMovement');
-                            else
-                                actionservice:BindAction(
-                                    'FreezeMovement',
-                                    function()
-                                        return Enum.ContextActionResult.Sink
-                                    end,
-                                    false,
-                                    unpack(Enum.PlayerActions:GetEnumItems())
-                                )
-                                box:CaptureFocus(inputservice:IsKeyDown(Enum.KeyCode.LeftControl));
-                                if inputservice:IsKeyDown(Enum.KeyCode.LeftControl) then
-                                    objs.inputText.Text = '';
-                                end
-                            end
-                        end)
-
-                    end
-                    ----------------------
-
-                    function box:SetText(str)
-                        if typeof(str) == 'string' then
-                            self.text = str;
-                            self.objects.text.Text = str;
-                        end
-                    end
-
-                    function box:SetInput(str, nocallback)
-                        if typeof(str) == 'string' then
-                            self.input = str;
-                            self.objects.inputText.Text = str;
-                            if not nocallback then
-                                self.callback(str);
-                            end
-                            if self.flag then
-                                library.flags[self.flag] = str;
+                        local blacklist = {'objects', 'dragging'};
+                        for i,v in next, data do
+                            if not table.find(blacklist, i) and box[i] ~= nil then
+                                box[i] = v;
                             end
                         end
-                    end
 
-                    local c
-                    local input = box.input;
-                    function box:CaptureFocus(clear)
-                        box.focused = true
+                        table.insert(self.subbuttons, box)
 
-                        if clear then
-                            input = '';
+                        if box.flag then
+                            library.flags[box.flag] = box.input;
+                            library.options[box.flag] = box;
                         end
 
-                        self.objects.inputText.ThemeColor = 'Option Text 1';
-                        c = utility:Connection(inputservice.InputBegan, function(inp)
-                            if inp.KeyCode == Enum.KeyCode.Return or inp.UserInputType == Enum.UserInputType.MouseButton1 then
-                                box:ReleaseFocus(true);
-                            elseif inp.KeyCode == Enum.KeyCode.Escape then
-                                input = self.input
-                                self.objects.inputText.Text = input;
-                                box:ReleaseFocus();
-                            elseif inp.KeyCode == Enum.KeyCode.Backspace then
-                                input = input:sub(1,-2);
-                                self.objects.inputText.Text = input;
-                            elseif #inp.KeyCode.Name == 1 or table.find(whitelistedBoxKeys, inp.KeyCode) or inp.KeyCode.Name == 'Space' or inp.KeyCode.Name == 'Minus' or inp.KeyCode.Name == 'Equals' or inp.KeyCode.Name == 'Backquote' then
-                                local wlIdx = table.find(whitelistedBoxKeys, inp.KeyCode)
-                                local keyString = inp.KeyCode.Name == 'Space' and ' ' or inp.KeyCode.Name == 'Minus' and '_' or inp.KeyCode.Name == 'Equals' and '+' or inp.KeyCode.Name == 'Backquote' and '~' or wlIdx ~= nil and tostring(wlIdx-1) or inp.KeyCode.Name
-                                if not (inputservice:IsKeyDown(Enum.KeyCode.LeftShift) and not inputservice:IsKeyDown(Enum.KeyCode.RightShift)) then
-                                    keyString = keyString:lower();
-                                    if inp.KeyCode.Name == 'Minus' then
-                                        keyString = '-'
-                                    elseif inp.KeyCode.Name == 'Equals' then
-                                        keyString = '='
-                                    elseif inp.KeyCode.Name == 'Backquote' then
-                                        keyString = '`'
-                                    end
+                        --- Create Objects (compact, fits into button subbuttons area) ---
+                        do
+                            local objs = box.objects;
+                            local z = library.zindexOrder.window+25;
+
+                            objs.holder = utility:Draw('Square', {
+                                Size = newUDim2(1,0,1,0);
+                                Transparency = 0;
+                                ZIndex = z+5;
+                                Parent = self.objects.holder;
+                            })
+
+                            objs.background = utility:Draw('Square', {
+                                Size = newUDim2(1,-4,1,-8);
+                                Position = newUDim2(0,2,0,4);
+                                ThemeColor = 'Option Background';
+                                ZIndex = z+2;
+                                Parent = objs.holder;
+                            })
+
+                            objs.border1 = utility:Draw('Square', {
+                                Size = newUDim2(1,2,1,2);
+                                Position = newUDim2(0,-1,0,-1);
+                                ThemeColor = 'Option Border 1';
+                                ZIndex = z+1;
+                                Parent = objs.background;
+                            })
+
+                            objs.border2 = utility:Draw('Square', {
+                                Size = newUDim2(1,2,1,2);
+                                Position = newUDim2(0,-1,0,-1);
+                                ThemeColor = 'Option Border 2';
+                                ZIndex = z;
+                                Parent = objs.border1;
+                            })
+
+                            objs.gradient = utility:Draw('Image', {
+                                Size = newUDim2(1,0,1,0);
+                                Data = library.images.gradientp90;
+                                Transparency = .65;
+                                ZIndex = z+4;
+                                Parent = objs.background;
+                            })
+
+                            objs.text = utility:Draw('Text', {
+                                Position = newUDim2(0,2,0,2);
+                                ThemeColor = box.risky and 'Risky Text Enabled' or 'Option Text 2';
+                                Size = 13;
+                                Font = 2;
+                                ZIndex = z+1;
+                                Outline = true;
+                                Parent = objs.holder;
+                            })
+
+                            objs.inputText = utility:Draw('Text', {
+                                Position = newUDim2(0,2,0,0);
+                                ThemeColor = 'Option Text 2';
+                                Size = 13;
+                                Font = 2;
+                                ZIndex = z+5;
+                                Outline = true;
+                                Parent = objs.background;
+                            })
+
+                            utility:Connection(objs.holder.MouseEnter, function()
+                                objs.border1.ThemeColor = 'Accent';
+                            end)
+
+                            utility:Connection(objs.holder.MouseLeave, function()
+                                objs.border1.ThemeColor = 'Option Border 1';
+                            end)
+
+                            utility:Connection(objs.holder.MouseButton1Down, function()
+                                if box.focused then
+                                    box:ReleaseFocus();
                                 else
-                                    if keyString == '1' then
-                                        keyString = '!'
-                                    elseif keyString == '2' then
-                                        keyString = '@'
-                                    elseif keyString == '3' then
-                                        keyString = '#'
-                                    elseif keyString == '4' then
-                                        keyString = '$'
-                                    elseif keyString == '5' then
-                                        keyString = '%'
-                                    elseif keyString == '6' then
-                                        keyString = '^'
-                                    elseif keyString == '7' then
-                                        keyString = '&'
-                                    elseif keyString == '8' then
-                                        keyString = '*'
-                                    elseif keyString == '9' then
-                                        keyString = '('
-                                    elseif keyString == '0' then
-                                        keyString = ')'
-                                    end
+                                    box:CaptureFocus(inputservice:IsKeyDown(Enum.KeyCode.LeftControl));
                                 end
-                                input = input..keyString;
-                                self.objects.inputText.Text = input;
-                            end
-                        end)
-
-                    end
-
-                    function box:ReleaseFocus(apply)
-                        box.focused = false;
-                        self.objects.inputText.ThemeColor = 'Option Text 2';
-                        if apply then
-                            box:SetInput(input);
+                            end)
                         end
-                        c:Disconnect();
-                    end
+                        ----------------------
 
-                    tooltip(box);
-                    box:SetText(box.text);
-                    box:SetInput(box.input, true);
-                    self:UpdateOptions();
-                    return box
-                end
+                        function box:SetText(str)
+                            if typeof(str) == 'string' then
+                                self.text = str;
+                                self.objects.text.Text = str;
+                            end
+                        end
+
+                        function box:SetInput(str, nocallback)
+                            if typeof(str) == 'string' then
+                                self.input = str;
+                                self.objects.inputText.Text = str;
+                                if not nocallback then
+                                    self.callback(str);
+                                end
+                                if self.flag then
+                                    library.flags[self.flag] = str;
+                                end
+                            end
+                        end
+
+                        local c
+                        local input = box.input;
+                        function box:CaptureFocus(clear)
+                            box.focused = true
+
+                            if clear then
+                                input = '';
+                            end
+
+                            self.objects.inputText.ThemeColor = 'Option Text 1';
+                            c = utility:Connection(inputservice.InputBegan, function(inp)
+                                if inp.KeyCode == Enum.KeyCode.Return or inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                                    box:ReleaseFocus(true);
+                                elseif inp.KeyCode == Enum.KeyCode.Escape then
+                                    input = self.input
+                                    self.objects.inputText.Text = input;
+                                    box:ReleaseFocus();
+                                elseif inp.KeyCode == Enum.KeyCode.Backspace then
+                                    input = input:sub(1,-2);
+                                    self.objects.inputText.Text = input;
+                                elseif #inp.KeyCode.Name == 1 or table.find(whitelistedBoxKeys, inp.KeyCode) or inp.KeyCode.Name == 'Space' or inp.KeyCode.Name == 'Minus' or inp.KeyCode.Name == 'Equals' or inp.KeyCode.Name == 'Backquote' then
+                                    local wlIdx = table.find(whitelistedBoxKeys, inp.KeyCode)
+                                    local keyString = inp.KeyCode.Name == 'Space' and ' ' or inp.KeyCode.Name == 'Minus' and '_' or inp.KeyCode.Name == 'Equals' and '+' or inp.KeyCode.Name == 'Backquote' and '~' or wlIdx ~= nil and tostring(wlIdx-1) or inp.KeyCode.Name
+                                    if not (inputservice:IsKeyDown(Enum.KeyCode.LeftShift) and not inputservice:IsKeyDown(Enum.KeyCode.RightShift)) then
+                                        keyString = keyString:lower();
+                                        if inp.KeyCode.Name == 'Minus' then
+                                            keyString = '-'
+                                        elseif inp.KeyCode.Name == 'Equals' then
+                                            keyString = '='
+                                        elseif inp.KeyCode.Name == 'Backquote' then
+                                            keyString = '`'
+                                        end
+                                    else
+                                        if keyString == '1' then
+                                            keyString = '!'
+                                        elseif keyString == '2' then
+                                            keyString = '@'
+                                        elseif keyString == '3' then
+                                            keyString = '#'
+                                        elseif keyString == '4' then
+                                            keyString = '$'
+                                        elseif keyString == '5' then
+                                            keyString = '%'
+                                        elseif keyString == '6' then
+                                            keyString = '^'
+                                        elseif keyString == '7' then
+                                            keyString = '&'
+                                        elseif keyString == '8' then
+                                            keyString = '*'
+                                        elseif keyString == '9' then
+                                            keyString = '('
+                                        elseif keyString == '0' then
+                                            keyString = ')'
+                                        end
+                                    end
+                                    input = input..keyString;
+                                    self.objects.inputText.Text = input;
+                                end
+                            end)
+
+                        end
+
+                        function box:ReleaseFocus(apply)
+                            box.focused = false;
+                            self.objects.inputText.ThemeColor = 'Option Text 2';
+                            if apply then
+                                box:SetInput(input);
+                            end
+                            if c then c:Disconnect() end
+                        end
+
+                        tooltip(box);
+                        box:SetText(box.text);
+                        box:SetInput(box.input, true);
+                        self:UpdateOptions();
+                        return box
+                    end
 
                 -- // Keybind
                 function section:AddBind(data)
