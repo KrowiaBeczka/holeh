@@ -1,4 +1,3 @@
--- tokio lib
 local startupArgs = ({...})[1] or {}
 
 if getgenv().library ~= nil then
@@ -1780,97 +1779,94 @@ function library:init()
 
             end
 
-function window.dropdown:Refresh()
-    if self.selected ~= nil then
-        local list = self.selected
-        local maxVisible = 8  -- Maksymalna liczba widocznych elementów
-        local itemHeight = 20 -- Wysokość elementu (18px + 2px padding)
-        
-        for idx, value in next, list.values do
-            local valueObject = self.objects.values[idx]
-            if valueObject == nil then
-                valueObject = {};
-                valueObject.background = utility:Draw('Square', {
-                    Size = newUDim2(1,-4,0,18);
-                    Color = Color3.new(.25,.25,.25);
-                    Transparency = 0;
-                    ZIndex = library.zindexOrder.dropdown+1;
-                    Parent = self.objects.background;
-                })
-                valueObject.text = utility:Draw('Text', {
-                    Position = newUDim2(0,3,0,1);
-                    ThemeColor = 'Option Text 2';
-                    Text = tostring(value);
-                    Size = 13;
-                    Font = 2;
-                    ZIndex = library.zindexOrder.dropdown+2;
-                    Parent = valueObject.background;
-                })
-                valueObject.connection = utility:Connection(valueObject.background.MouseButton1Down, function()
-                    local currentList = self.selected
-                    if currentList then
-                        local val = currentList.values[idx]
-                        local currentSelected = currentList.selected;
-                        local newSelected = currentList.multi and {} or val;
-                        
-                        if currentList.multi then
-                            for i,v in next, currentSelected do
-                                if v == "none" then continue end
-                                newSelected[i] = v;
-                            end
-                            if table.find(newSelected, val) then
-                                table.remove(newSelected, table.find(newSelected, val));
-                            else
-                                table.insert(newSelected, val)
-                            end
-                        end
+            function window.dropdown:Refresh()
+                if self.selected ~= nil then
+                    local list = self.selected
+                    for idx, value in next, list.values do
+                        local valueObject = self.objects.values[idx]
+                        if valueObject == nil then
+                            valueObject = {};
+                            valueObject.background = utility:Draw('Square', {
+                                Size = newUDim2(1,-4,0,18);
+                                Color = Color3.new(.25,.25,.25);
+                                Transparency = 0;
+                                ZIndex = library.zindexOrder.dropdown+1;
+                                Parent = self.objects.background;
+                            })
+                            valueObject.text = utility:Draw('Text', {
+                                Position = newUDim2(0,3,0,1);
+                                ThemeColor = 'Option Text 2';
+                                Text = tostring(value);
+                                Size = 13;
+                                Font = 2;
+                                ZIndex = library.zindexOrder.dropdown+2;
+                                Parent = valueObject.background;
+                            })
+                            valueObject.connection = utility:Connection(valueObject.background.MouseButton1Down, function()
+                                local currentList = self.selected
+                                if currentList then
+                                    local val = currentList.values[idx]
+                                    local currentSelected = currentList.selected;
+                                    local newSelected = currentList.multi and {} or val;
+                                    
+                                    if currentList.multi then
+                                        for i,v in next, currentSelected do
+                                            if v == "none" then continue end
+                                            newSelected[i] = v;
+                                        end
+                                        if table.find(newSelected, val) then
+                                            table.remove(newSelected, table.find(newSelected, val));
+                                        else
+                                            table.insert(newSelected, val)
+                                        end
+                                    end
 
-                        currentList:Select(newSelected);
-                        if not currentList.multi then
-                            currentList.open = false;
-                            currentList.objects.openText.Text = '+';
-                            window.dropdown.selected = nil;
-                            window.dropdown.objects.background.Visible = false;
-                        end
+                                    currentList:Select(newSelected);
+                                    if not currentList.multi then
+                                        currentList.open = false;
+                                        currentList.objects.openText.Text = '+';
+                                        window.dropdown.selected = nil;
+                                        window.dropdown.objects.background.Visible = false;
+                                    end
 
-                        for idx, val in next, currentList.values do
-                            local valueObj = self.objects.values[idx]
-                            if valueObj then
-                                valueObj.background.Transparency = (typeof(newSelected) == 'table' and table.find(newSelected, val) or newSelected == val) and 1 or 0
-                            end
-                        end
+                                    for idx, val in next, currentList.values do
+                                        local valueObj = self.objects.values[idx]
+                                        if valueObj then
+                                            valueObj.background.Transparency = (typeof(newSelected) == 'table' and table.find(newSelected, val) or newSelected == val) and 1 or 0
+                                        end
+                                    end
 
+                                end
+                            end)
+                            self.objects.values[idx] = valueObject
+                        end
                     end
-                end)
-                self.objects.values[idx] = valueObject
+
+                    for idx, val in next, list.values do
+                        local valueObj = self.objects.values[idx]
+                        if valueObj then
+                            valueObj.background.Transparency = (typeof(list.selected) == 'table' and table.find(list.selected, val) or list.selected == val) and 1 or 0
+                        end
+                    end
+
+                    local y,padding = 2,2
+                    for idx, obj in next, self.objects.values do
+                        local valueStr = list.values[idx]
+                        obj.background.Visible = valueStr ~= nil
+                        if valueStr ~= nil then
+                            obj.background.Position = newUDim2(0,2,0,y);
+                            obj.text.Text = valueStr;
+                            y = y + obj.background.Object.Size.Y + padding;
+                        end
+                    end
+
+                    self.objects.background.Size = newUDim2(1,-6,0,y);    
+
+                end
             end
+        
+            window.dropdown:Refresh();
         end
-
-        for idx, val in next, list.values do
-            local valueObj = self.objects.values[idx]
-            if valueObj then
-                valueObj.background.Transparency = (typeof(list.selected) == 'table' and table.find(list.selected, val) or list.selected == val) and 1 or 0
-            end
-        end
-
-        local y,padding = 2,2
-        for idx, obj in next, self.objects.values do
-            local valueStr = list.values[idx]
-            obj.background.Visible = valueStr ~= nil
-            if valueStr ~= nil then
-                obj.background.Position = newUDim2(0,2,0,y);
-                obj.text.Text = valueStr;
-                y = y + obj.background.Object.Size.Y + padding;
-            end
-        end
-
-        -- ZMIANA: Ograniczenie wysokości dropdownu
-        local totalHeight = y
-        local maxHeight = (maxVisible * itemHeight) + 4
-        self.objects.background.Size = newUDim2(1,-6,0, math.min(totalHeight, maxHeight));
-
-    end
-end
         -------------------------
 
         local function tooltip(option)
