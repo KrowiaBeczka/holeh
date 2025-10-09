@@ -1033,6 +1033,30 @@ function library:init()
                 Outline = true;
                 Parent = objs.background;
             });
+objs.scrolling = utility:Draw('ScrollingFrame', {
+    Size = newUDim2(1, 0, 1, 0);
+    Position = newUDim2(0, 0, 0, 0);
+    BackgroundTransparency = 1;
+    CanvasSize = newUDim2(0, 0, 0, 0);
+    ScrollBarThickness = 3;
+    Parent = objs.background;
+})
+
+local layout = utility:Draw('UIListLayout', {
+    Padding = newUDim(0, 2);
+    SortOrder = Enum.SortOrder.LayoutOrder;
+    Parent = objs.scrolling;
+})
+
+function objs:UpdateCanvas()
+    local totalHeight = 0
+    for _, child in ipairs(objs.scrolling:GetChildren()) do
+        if child:IsA('GuiObject') then
+            totalHeight = totalHeight + child.Size.Y.Offset + layout.Padding.Offset
+        end
+    end
+    objs.scrolling.CanvasSize = newUDim2(0, 0, 0, totalHeight)
+end
 
         end
         --------------------
