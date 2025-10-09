@@ -1033,20 +1033,18 @@ function library:init()
                 Outline = true;
                 Parent = objs.background;
             });
-objs.scrolling = utility:Draw('ScrollingFrame', {
-    Size = newUDim2(1, 0, 1, 0);
-    Position = newUDim2(0, 0, 0, 0);
-    BackgroundTransparency = 1;
-    CanvasSize = newUDim2(0, 0, 0, 0);
-    ScrollBarThickness = 3;
-    Parent = objs.background;
-})
+            objs.scrolling = Instance.new("ScrollingFrame")
+objs.scrolling.Size = UDim2.new(1,0,1,0)
+objs.scrolling.Position = UDim2.new(0,0,0,0)
+objs.scrolling.BackgroundTransparency = 1
+objs.scrolling.CanvasSize = UDim2.new(0,0,0,0)
+objs.scrolling.ScrollBarThickness = 3
+objs.scrolling.Parent = objs.background
 
-local layout = utility:Draw('UIListLayout', {
-    Padding = newUDim(0, 2);
-    SortOrder = Enum.SortOrder.LayoutOrder;
-    Parent = objs.scrolling;
-})
+local layout = Instance.new("UIListLayout")
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0,2)
+layout.Parent = objs.scrolling
 
 function objs:UpdateCanvas()
     local totalHeight = 0
@@ -1055,7 +1053,7 @@ function objs:UpdateCanvas()
             totalHeight = totalHeight + child.Size.Y.Offset + layout.Padding.Offset
         end
     end
-    objs.scrolling.CanvasSize = newUDim2(0, 0, 0, totalHeight)
+    objs.scrolling.CanvasSize = UDim2.new(0,0,0,totalHeight)
 end
 
         end
