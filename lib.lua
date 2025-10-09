@@ -2075,7 +2075,7 @@ function library:init()
                     })
 
                     objs.innerBorder = utility:Draw('Square', {
-                        Size = newUDim2(1,0,1,0);
+                        Size = newUDim2(1,2,1,1);
                         Position = newUDim2(0,-1,0,0);
                         ThemeColor = 'Border 3';
                         ZIndex = z-1;
@@ -2083,7 +2083,7 @@ function library:init()
                     })
 
                     objs.outerBorder = utility:Draw('Square', {
-                        Size = newUDim2(1,0,1,0);
+                        Size = newUDim2(1,2,1,1);
                         Position = newUDim2(0,-1,0,0);
                         ThemeColor = 'Border 1';
                         ZIndex = z-2;
@@ -2114,8 +2114,9 @@ function library:init()
                     })
 
                     objs.optionholder = utility:Draw('Square',{
-                        Size = newUDim2(1-.03,0,1,-15);
-                        Position = newUDim2(.015,0,0,13);
+                    Size = newUDim2(1, 0, 1, -15);
+                    Position = newUDim2(0, 0, 0, 13);
+
                         Transparency = 0;
                         ZIndex = z+1;
                         Parent = objs.background;
