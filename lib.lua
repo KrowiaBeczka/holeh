@@ -2154,17 +2154,27 @@ function library:init()
                         return a.order < b.order
                     end)
 
-                    local yPos, padding = 2, 0;
                     local holder = self.objects.optionholder
+                    local padding = 0
+                    local yPos = 2
+
+                    -- visible height inside the optionholder (pixels)
                     local visibleH = holder.Object and holder.Object.Size.Y or 0
 
-                    -- layout items using scroll offset
-                    for i,option in next, self.options do
+                    -- layout items using scroll offset and hide items outside viewport
+                    for i, option in next, self.options do
                         option.objects.holder.Visible = option.enabled
                         if option.enabled then
-                            local h = option.objects.holder.Object.Size.Y or 0
-                            option.objects.holder.Position = newUDim2(0,0,0, yPos - (holder.Scroll or 0));
-                            yPos = yPos + h + padding;
+                            local itemH = option.objects.holder.Object.Size.Y or 0
+                            local itemY = yPos - (holder.Scroll or 0)
+                            option.objects.holder.Position = newUDim2(0,0,0, itemY)
+
+                            -- compute top/bottom relative to holder to determine visibility
+                            local top = option.objects.holder.Object.Position.Y - holder.Object.Position.Y
+                            local bottom = top + (option.objects.holder.Object.Size.Y or 0)
+                            option.objects.holder.Visible = (bottom > 0 and top < visibleH)
+
+                            yPos = yPos + itemH + padding
                         end
                     end
 
@@ -2176,10 +2186,14 @@ function library:init()
                     -- constrain section background height to not exceed its column height
                     local parentCol = window.objects['columnholder'..(self.side)].Object
                     local parentH = parentCol and parentCol.Size.Y or visibleH
-                    local bgH = math.min(totalH, parentH - 10) -- leave small margin
+                    local bgH = math.min(totalH, parentH - 10)
+
                     if bgH < 16 then bgH = 16 end
 
+                    -- set background and optionholder sizes so visual area is consistent
                     self.objects.background.Size = newUDim2(1,0,0, bgH);
+                    -- optionholder sits inside background with top offset (13) and bottom reserved (15), match visible area
+                    holder.Size = newUDim2(1-.03,0,0, math.max(0, bgH - 15))
                 end
 
                 ------- Options -------
