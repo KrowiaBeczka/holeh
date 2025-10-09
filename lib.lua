@@ -1,4 +1,4 @@
--- post
+-- tokio lib
 local startupArgs = ({...})[1] or {}
 
 if getgenv().library ~= nil then
@@ -787,39 +787,7 @@ function library:init()
             end
         end
     end)
-utility:Connection(inputservice.InputChanged, function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseWheel and library.open then
-            local mousePos = inputservice:GetMouseLocation()
-            
-            for _, win in next, library.windows do
-                if not win.open then continue end
-                
-                for col = 1, 2 do
-                    local holder = win.objects['columnholder'..col]
-                    if not holder or not holder.Visible then continue end
-                    
-                    local holderPos = holder.Object.Position
-                    local holderSize = holder.Object.Size
-                    
-                    if mousePos.X >= holderPos.X and mousePos.X <= holderPos.X + holderSize.X and
-                       mousePos.Y >= holderPos.Y and mousePos.Y <= holderPos.Y + holderSize.Y then
-                        
-                        local delta = 0
-                        pcall(function() delta = inp.Position.Z end)
-                        if delta == 0 then pcall(function() delta = inp.Position.Y end) end
-                        
-                        local scrollData = win.columnScroll[col]
-                        scrollData.scroll = clamp(scrollData.scroll - (delta * 40), 0, scrollData.maxScroll)
-                        
-                        if win.selectedTab then
-                            win.selectedTab:UpdateSections()
-                        end
-                        return
-                    end
-                end
-            end
-        end
-    end)
+
     utility:Connection(inputservice.InputChanged, function(input, gpe)
         if input.UserInputType == Enum.UserInputType.MouseMovement then
             if library.open then
@@ -1359,7 +1327,7 @@ utility:Connection(inputservice.InputChanged, function(inp)
                 Parent = objs.groupBackground;
             })
 
-objs.columnholder2 = utility:Draw('Square', {
+            objs.columnholder2 = utility:Draw('Square', {
                 Size = newUDim2(.48, 0, .96, 0);
                 Position = newUDim2(1 - (.48 + .01), 0, .02, 0);
                 Transparency = 0;
@@ -1367,12 +1335,7 @@ objs.columnholder2 = utility:Draw('Square', {
                 Parent = objs.groupBackground;
             })
 
-window.columnScroll = window.columnScroll or {
-                [1] = {scroll = 0, maxScroll = 0},
-                [2] = {scroll = 0, maxScroll = 0}
-            }
 
-            
             objs.dragdetector = utility:Draw('Square',{
                 Size = newUDim2(1,0,1,0);
                 Parent = objs.midBorder;
@@ -2184,12 +2147,7 @@ window.columnScroll = window.columnScroll or {
                     end
 
                     self.objects.background.Size = newUDim2(1,0,0,ySize);
-self.objects.background.Size = newUDim2(1,0,0,ySize)
-                    
-                    task.spawn(function()
-                        task.wait()
-                        tab:UpdateSections()
-                    end)
+
                 end
 
                 function section:SetEnabled(bool)
@@ -4535,66 +4493,65 @@ self.objects.background.Size = newUDim2(1,0,0,ySize)
                 return section;
             end
 
-function tab:UpdateSections()
-                if not window.columnScroll then
-                    window.columnScroll = {
-                        [1] = {scroll = 0, maxScroll = 0},
-                        [2] = {scroll = 0, maxScroll = 0}
-                    }
-                end
-                
+            function tab:UpdateSections()
                 table.sort(self.sections, function(a,b)
                     return a.order < b.order
                 end)
 
+                local last1,last2;
+                local padding = 15;
                 for _,section in next, self.sections do
+
                     if section.objects.background.Visible ~= (section.enabled and tab.selected) then
                         section.objects.background.Visible = section.enabled and tab.selected
                         section:UpdateOptions();
                     end
-                    section:SetText(section.text)
-                end
-
-                for col = 1, 2 do
-                    local holder = window.objects['columnholder'..col]
-                    local scrollData = window.columnScroll[col]
                     
-                    local contentHeight = 0
-                    for _, section in next, self.sections do
-                        if section.side == col and section.enabled then
-                            contentHeight = contentHeight + section.objects.background.Object.Size.Y + 15
+                    if section.enabled then
+                        if section.side == 1 then
+                            if last1 then
+                                section.objects.background.Position = last1.objects.background.Position + newUDim2(0,0,0,last1.objects.background.Object.Size.Y + padding);
+                            end
+                            last1 = section;
+                        elseif section.side == 2 then
+                            if last2 then
+                                section.objects.background.Position = last2.objects.background.Position + newUDim2(0,0,0,last2.objects.background.Object.Size.Y + padding);
+                            end
+                            last2 = section;
                         end
                     end
+
+                    section:SetText(section.text)
                     
-                    scrollData.maxScroll = math.max(0, contentHeight - holder.Object.Size.Y + 15)
-                    scrollData.scroll = clamp(scrollData.scroll, 0, scrollData.maxScroll)
-                    
-                    local yPos = 0
-                    local holderTop = holder.Object.Position.Y
-                    local holderBottom = holderTop + holder.Object.Size.Y
-                    
-                    for _, section in next, self.sections do
-                        if section.side == col and section.enabled then
-                            local sectionY = yPos - scrollData.scroll
-                            section.objects.background.Position = newUDim2(0, 0, 0, sectionY)
-                            
-                            local sectionTop = holderTop + sectionY
-                            local sectionBottom = sectionTop + section.objects.background.Object.Size.Y
-                            
-                            local isVisible = section.objects.background.Visible and 
-                                             sectionBottom > holderTop and 
-                                             sectionTop < holderBottom
-                            
-                            for _, descendant in next, section.objects.background:GetDescendants() do
-                                descendant.Visible = isVisible
-                            end
-                            section.objects.background.Visible = isVisible
-                            
-                            yPos = yPos + section.objects.background.Object.Size.Y + 15
-                        end
+                end
+            end
+
+            function tab:SetText(str)
+                if typeof(str) == 'string' then
+                    self.text = str;
+                    self.objects.text.Text = str;
+                    window:UpdateTabs();
+                end
+            end
+
+            function tab:Select()
+                window.selectedTab = tab;
+                window:UpdateTabs();
+                for i,v in next, window.tabs do
+                    if v.callback then
+                        v.callback(v == tab)
                     end
                 end
             end
+
+            if window.selectedTab == nil then
+                tab:Select();
+            end
+
+            tab:SetText(tab.text);
+            window:UpdateTabs();
+            return tab;
+        end
 
         function window:UpdateTabs()
             table.sort(self.tabs, function(a,b)
