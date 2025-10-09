@@ -61,6 +61,54 @@ local library = {
     };
     numberStrings = {['Zero'] = 0, ['One'] = 1, ['Two'] = 2, ['Three'] = 3, ['Four'] = 4, ['Five'] = 5, ['Six'] = 6, ['Seven'] = 7, ['Eight'] = 8, ['Nine'] = 9};
     signal = loadstring(game:HttpGet('https://raw.githubusercontent.com/drillygzzly/Other/main/1414'))();
++    do
++        local ok, remote = pcall(function()
++            local body = game:HttpGet('https://raw.githubusercontent.com/drillygzzly/Other/main/1414')
++            if not body or body == '' then return nil end
++            local f = loadstring(body)
++            if not f then return nil end
++            return f()
++        end)
++
++        if ok and type(remote) == 'table' and type(remote.new) == 'function' then
++            signal = remote
++        else
++            -- simple Signal fallback
++            local function makeSignal()
++                local listeners = {}
++                local sig = {}
++                function sig:Connect(fn)
++                    if type(fn) ~= 'function' then return {Disconnect = function() end} end
++                    local entry = {fn = fn}
++                    table.insert(listeners, entry)
++                    local conn = {}
++                    function conn:Disconnect()
++                        for i = #listeners, 1, -1 do
++                            if listeners[i] == entry then
++                                table.remove(listeners, i)
++                                break
++                            end
++                        end
++                    end
++                    return conn
++                end
++                function sig:Fire(...)
++                    -- iterate a copy so Disconnect during Fire is safe
++                    local copy = {}
++                    for i=1,#listeners do copy[i] = listeners[i] end
++                    for _,entry in next, copy do
++                        pcall(entry.fn, ...)
++                    end
++                end
++                function sig:Destroy()
++                    table.clear(listeners)
++                end
++                return sig
++            end
++            signal = { new = makeSignal }
++        end
++    end;
+-- ...existing code...    
     open = false;
     opening = false;
     hasInit = false;
