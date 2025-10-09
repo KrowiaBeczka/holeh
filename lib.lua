@@ -2112,6 +2112,7 @@ function library:init()
                         ZIndex = z+1;
                         Parent = objs.background;
                     })
+
                     objs.optionholder = utility:Draw('Square',{
                         Size = newUDim2(1-.03,0,1,-15);
                         Position = newUDim2(.015,0,0,13);
@@ -2120,18 +2121,18 @@ function library:init()
                         Parent = objs.background;
                     })
 
-                    -- add simple scroll state for this optionholder
+                    -- scroll state for this optionholder
                     objs.optionholder.Scroll = 0
                     objs.optionholder.ScrollSpeed = 20
 
-                    -- mouse wheel scrolling for this section's optionholder
+                    -- mouse wheel scrolling: adjust scroll when cursor is over this optionholder
                     utility:Connection(inputservice.InputChanged, function(inp)
                         if inp.UserInputType == Enum.UserInputType.MouseWheel and library.open then
                             if utility:MouseOver(objs.optionholder.Object) then
                                 local delta = 0
-                                pcall(function() delta = inp.Position.Z end) -- wheel delta
-                                -- adjust scroll (invert sign if wheel direction is opposite)
-                                objs.optionholder.Scroll = objs.optionholder.Scroll - (delta * (objs.optionholder.ScrollSpeed or 20))
+                                pcall(function() delta = inp.Position.Z end)
+                                -- invert sign if needed (-delta)
+                                objs.optionholder.Scroll = clamp((objs.optionholder.Scroll or 0) - (delta * objs.optionholder.ScrollSpeed), 0, math.huge)
                                 section:UpdateOptions()
                             end
                         end
@@ -2148,37 +2149,37 @@ function library:init()
                     self.objects.topBorder2.Position = newUDim2(1, 1 + -x, 0, 0)
                 end
 
-function section:UpdateOptions()
+                function section:UpdateOptions()
                     table.sort(self.options, function(a,b)
                         return a.order < b.order
                     end)
 
-                    local ySize, padding = 15, 0;
-                    local visibleH = self.objects.optionholder.Object.Size.Y
+                    local yPos, padding = 2, 0;
+                    local holder = self.objects.optionholder
+                    local visibleH = holder.Object and holder.Object.Size.Y or 0
+
+                    -- layout items using scroll offset
                     for i,option in next, self.options do
                         option.objects.holder.Visible = option.enabled
                         if option.enabled then
-                            local holderH = option.objects.holder.Object.Size.Y or 0
-                            -- position takes scroll into account
-                            option.objects.holder.Position = newUDim2(0,0,0, ySize - 15 - (self.objects.optionholder.Scroll or 0));
-                            ySize = ySize + holderH + padding;
+                            local h = option.objects.holder.Object.Size.Y or 0
+                            option.objects.holder.Position = newUDim2(0,0,0, yPos - (holder.Scroll or 0));
+                            yPos = yPos + h + padding;
                         end
                     end
 
-                    -- clamp scroll so you can't scroll past content
-                    local totalH = ySize
+                    local totalH = math.max(0, yPos)
+                    -- clamp scroll so content can't be scrolled past bounds
                     local maxScroll = math.max(0, totalH - visibleH)
-                    self.objects.optionholder.Scroll = clamp(self.objects.optionholder.Scroll or 0, 0, maxScroll)
+                    holder.Scroll = clamp(holder.Scroll or 0, 0, maxScroll)
 
-                    -- resize background to fit content minimum or keep as before
-                    self.objects.background.Size = newUDim2(1,0,0, math.max(16, math.min(totalH, visibleH)))
-                end
+                    -- constrain section background height to not exceed its column height
+                    local parentCol = window.objects['columnholder'..(self.side)].Object
+                    local parentH = parentCol and parentCol.Size.Y or visibleH
+                    local bgH = math.min(totalH, parentH - 10) -- leave small margin
+                    if bgH < 16 then bgH = 16 end
 
-                function section:SetEnabled(bool)
-                    if typeof(bool) == 'boolean' then
-                        section.enabled = bool;
-                        tab:UpdateSections();
-                    end
+                    self.objects.background.Size = newUDim2(1,0,0, bgH);
                 end
 
                 ------- Options -------
