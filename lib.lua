@@ -61,54 +61,6 @@ local library = {
     };
     numberStrings = {['Zero'] = 0, ['One'] = 1, ['Two'] = 2, ['Three'] = 3, ['Four'] = 4, ['Five'] = 5, ['Six'] = 6, ['Seven'] = 7, ['Eight'] = 8, ['Nine'] = 9};
     signal = loadstring(game:HttpGet('https://raw.githubusercontent.com/drillygzzly/Other/main/1414'))();
-+    do
-+        local ok, remote = pcall(function()
-+            local body = game:HttpGet('https://raw.githubusercontent.com/drillygzzly/Other/main/1414')
-+            if not body or body == '' then return nil end
-+            local f = loadstring(body)
-+            if not f then return nil end
-+            return f()
-+        end)
-+
-+        if ok and type(remote) == 'table' and type(remote.new) == 'function' then
-+            signal = remote
-+        else
-+            -- simple Signal fallback
-+            local function makeSignal()
-+                local listeners = {}
-+                local sig = {}
-+                function sig:Connect(fn)
-+                    if type(fn) ~= 'function' then return {Disconnect = function() end} end
-+                    local entry = {fn = fn}
-+                    table.insert(listeners, entry)
-+                    local conn = {}
-+                    function conn:Disconnect()
-+                        for i = #listeners, 1, -1 do
-+                            if listeners[i] == entry then
-+                                table.remove(listeners, i)
-+                                break
-+                            end
-+                        end
-+                    end
-+                    return conn
-+                end
-+                function sig:Fire(...)
-+                    -- iterate a copy so Disconnect during Fire is safe
-+                    local copy = {}
-+                    for i=1,#listeners do copy[i] = listeners[i] end
-+                    for _,entry in next, copy do
-+                        pcall(entry.fn, ...)
-+                    end
-+                end
-+                function sig:Destroy()
-+                    table.clear(listeners)
-+                end
-+                return sig
-+            end
-+            signal = { new = makeSignal }
-+        end
-+    end;
--- ...existing code...    
     open = false;
     opening = false;
     hasInit = false;
@@ -1335,26 +1287,13 @@ function library:init()
                 Parent = objs.midBorder;
             })
 
-objs.groupBackground = utility:Draw('Square', {
+            objs.groupBackground = utility:Draw('Square', {
                 Size = newUDim2(1,-16,1,-(16+23));
                 Position = newUDim2(0,8,0,8+23);
                 ThemeColor = 'Group Background';
                 ZIndex = z+5;
                 Parent = objs.background;
             })
-             objs.groupBackground.Scroll = 0
-            objs.groupBackground.ScrollSpeed = 25
-
-            utility:Connection(inputservice.InputChanged, function(inp)
-                if inp.UserInputType == Enum.UserInputType.MouseWheel and library.open then
-                    if utility:MouseOver(objs.groupBackground.Object) then
-                        local delta = 0
-                        pcall(function() delta = inp.Position.Z end)
-                        objs.groupBackground.Scroll = clamp((objs.groupBackground.Scroll or 0) - (delta * objs.groupBackground.ScrollSpeed), 0, math.huge)
-                        window:UpdateTabs()
-                    end
-                end
-            end)
 
             objs.groupInnerBorder = utility:Draw('Square', {
                 Size = newUDim2(1,2,1,2);
@@ -1397,6 +1336,113 @@ objs.groupBackground = utility:Draw('Square', {
             })
 
 
+objs.columnholder1.scroll = 0
+objs.columnholder1.maxScroll = 0
+objs.columnholder1.contentHeight = 0
+
+objs.columnholder2.scroll = 0
+objs.columnholder2.maxScroll = 0
+objs.columnholder2.contentHeight = 0
+
+local function updateColumnScroll(column)
+    local holder = column == 1 and window.objects.columnholder1 or window.objects.columnholder2
+    local contentHeight = 0
+    
+    for _, section in next, tab.sections do
+        if section.side == column and section.enabled and section.objects.background.Visible then
+            contentHeight = contentHeight + section.objects.background.Object.Size.Y + 15
+        end
+    end
+    
+    holder.contentHeight = contentHeight
+    local visibleHeight = holder.Object.Size.Y
+    holder.maxScroll = math.max(0, contentHeight - visibleHeight)
+    
+    holder.scroll = clamp(holder.scroll or 0, 0, holder.maxScroll)
+    
+    local yPos = -holder.scroll
+    for _, section in next, tab.sections do
+        if section.side == column and section.enabled then
+            if section.objects.background.Visible then
+                section.objects.background.Position = newUDim2(0, 0, 0, yPos)
+                yPos = yPos + section.objects.background.Object.Size.Y + 15
+            end
+        end
+    end
+end
+
+function tab:UpdateSections()
+    table.sort(self.sections, function(a,b)
+        return a.order < b.order
+    end)
+
+    for _, section in next, self.sections do
+        if section.objects.background.Visible ~= (section.enabled and tab.selected) then
+            section.objects.background.Visible = section.enabled and tab.selected
+            section:UpdateOptions()
+        end
+        
+        section:SetText(section.text)
+    end
+    
+    updateColumnScroll(1)
+    updateColumnScroll(2)
+end
+
+utility:Connection(inputservice.InputChanged, function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseWheel and library.open then
+        local mousePos = inputservice:GetMouseLocation()
+        
+        for i = 1, 2 do
+            local holder = window.objects['columnholder'..i]
+            local pos = holder.Object.Position
+            local size = holder.Object.Size
+            
+            if mousePos.X >= pos.X and mousePos.X <= pos.X + size.X and
+               mousePos.Y >= pos.Y and mousePos.Y <= pos.Y + size.Y and
+               holder.Visible then
+                
+                local delta = 0
+                pcall(function() delta = inp.Position.Z end)
+                if delta == 0 then
+                    pcall(function() delta = inp.Position.Y end)
+                end
+                
+                holder.scroll = clamp((holder.scroll or 0) - (delta * 30), 0, holder.maxScroll)
+                
+                updateColumnScroll(i)
+                break
+            end
+        end
+    end
+end)
+
+function section:UpdateOptions()
+    table.sort(self.options, function(a,b)
+        return a.order < b.order
+    end)
+
+    local ySize, padding = 15, 0
+    for i, option in next, self.options do
+        option.objects.holder.Visible = option.enabled
+        if option.enabled then
+            option.objects.holder.Position = newUDim2(0, 0, 0, ySize - 15)
+            ySize = ySize + option.objects.holder.Object.Size.Y + padding
+        end
+    end
+
+    self.objects.background.Size = newUDim2(1, 0, 0, ySize)
+    
+    if tab and tab.selected then
+        task.spawn(function()
+            if self.side == 1 then
+                updateColumnScroll(1)
+            elseif self.side == 2 then
+                updateColumnScroll(2)
+            end
+        end)
+    end
+end
             objs.dragdetector = utility:Draw('Square',{
                 Size = newUDim2(1,0,1,0);
                 Parent = objs.midBorder;
@@ -2181,23 +2227,6 @@ objs.groupBackground = utility:Draw('Square', {
                         ZIndex = z+1;
                         Parent = objs.background;
                     })
-
-                    -- scroll state for this optionholder
-                    objs.optionholder.Scroll = 0
-                    objs.optionholder.ScrollSpeed = 20
-
-                    -- mouse wheel scrolling: adjust scroll when cursor is over this optionholder
-                    utility:Connection(inputservice.InputChanged, function(inp)
-                        if inp.UserInputType == Enum.UserInputType.MouseWheel and library.open then
-                            if utility:MouseOver(objs.optionholder.Object) then
-                                local delta = 0
-                                pcall(function() delta = inp.Position.Z end)
-                                -- invert sign if needed (-delta)
-                                objs.optionholder.Scroll = clamp((objs.optionholder.Scroll or 0) - (delta * objs.optionholder.ScrollSpeed), 0, math.huge)
-                                section:UpdateOptions()
-                            end
-                        end
-                    end)
                     
                 end
                 ----------------------
@@ -2215,46 +2244,24 @@ objs.groupBackground = utility:Draw('Square', {
                         return a.order < b.order
                     end)
 
-                    local holder = self.objects.optionholder
-                    local padding = 0
-                    local yPos = 2
-
-                    -- visible height inside the optionholder (pixels)
-                    local visibleH = holder.Object and holder.Object.Size.Y or 0
-
-                    -- layout items using scroll offset and hide items outside viewport
-                    for i, option in next, self.options do
+                    local ySize, padding = 15, 0;
+                    for i,option in next, self.options do
                         option.objects.holder.Visible = option.enabled
                         if option.enabled then
-                            local itemH = option.objects.holder.Object.Size.Y or 0
-                            local itemY = yPos - (holder.Scroll or 0)
-                            option.objects.holder.Position = newUDim2(0,0,0, itemY)
-
-                            -- compute top/bottom relative to holder to determine visibility
-                            local top = option.objects.holder.Object.Position.Y - holder.Object.Position.Y
-                            local bottom = top + (option.objects.holder.Object.Size.Y or 0)
-                            option.objects.holder.Visible = (bottom > 0 and top < visibleH)
-
-                            yPos = yPos + itemH + padding
+                            option.objects.holder.Position = newUDim2(0,0,0,ySize-15);
+                            ySize += option.objects.holder.Object.Size.Y + padding;
                         end
                     end
 
-                    local totalH = math.max(0, yPos)
-                    -- clamp scroll so content can't be scrolled past bounds
-                    local maxScroll = math.max(0, totalH - visibleH)
-                    holder.Scroll = clamp(holder.Scroll or 0, 0, maxScroll)
+                    self.objects.background.Size = newUDim2(1,0,0,ySize);
 
-                    -- constrain section background height to not exceed its column height
-                    local parentCol = window.objects['columnholder'..(self.side)].Object
-                    local parentH = parentCol and parentCol.Size.Y or visibleH
-                    local bgH = math.min(totalH, parentH - 10)
+                end
 
-                    if bgH < 16 then bgH = 16 end
-
-                    -- set background and optionholder sizes so visual area is consistent
-                    self.objects.background.Size = newUDim2(1,0,0, bgH);
-                    -- optionholder sits inside background with top offset (13) and bottom reserved (15), match visible area
-                    holder.Size = newUDim2(1-.03,0,0, math.max(0, bgH - 15))
+                function section:SetEnabled(bool)
+                    if typeof(bool) == 'boolean' then
+                        section.enabled = bool;
+                        tab:UpdateSections();
+                    end
                 end
 
                 ------- Options -------
@@ -4593,72 +4600,65 @@ objs.groupBackground = utility:Draw('Square', {
                 return section;
             end
 
-function tab:UpdateSections()
+            function tab:UpdateSections()
                 table.sort(self.sections, function(a,b)
                     return a.order < b.order
                 end)
 
-                local padding = 15
-                local group = window.objects.groupBackground
-                local visibleH = group.Object and group.Object.Size.Y or 0
-
-                -- first, ensure each section computed its internal sizes
+                local last1,last2;
+                local padding = 15;
                 for _,section in next, self.sections do
-                    section:UpdateOptions()
-                end
 
-                -- layout base positions (without scroll) per column, preserving existing first-position if set
-                local last1, last2 = nil, nil
-                for _,section in next, self.sections do
+                    if section.objects.background.Visible ~= (section.enabled and tab.selected) then
+                        section.objects.background.Visible = section.enabled and tab.selected
+                        section:UpdateOptions();
+                    end
+                    
                     if section.enabled then
-                        local basePos
                         if section.side == 1 then
                             if last1 then
-                                basePos = last1.objects.background.Position + newUDim2(0,0,0,last1.objects.background.Object.Size.Y + padding)
-                            else
-                                basePos = section.objects.background.Position
+                                section.objects.background.Position = last1.objects.background.Position + newUDim2(0,0,0,last1.objects.background.Object.Size.Y + padding);
                             end
-                            last1 = section
-                        else
+                            last1 = section;
+                        elseif section.side == 2 then
                             if last2 then
-                                basePos = last2.objects.background.Position + newUDim2(0,0,0,last2.objects.background.Object.Size.Y + padding)
-                            else
-                                basePos = section.objects.background.Position
+                                section.objects.background.Position = last2.objects.background.Position + newUDim2(0,0,0,last2.objects.background.Object.Size.Y + padding);
                             end
-                            last2 = section
+                            last2 = section;
                         end
-                        section._basePos = basePos
-                    end
-                end
-
-                -- compute total content height (pixels) for scroll clamping
-                local totalH = 0
-                for _,section in next, self.sections do
-                    if section.enabled and section._basePos then
-                        local endY = section._basePos.Y.Offset + section.objects.background.Object.Size.Y
-                        if endY > totalH then totalH = endY end
-                    end
-                end
-
-                local maxScroll = math.max(0, totalH - visibleH + padding)
-                group.Scroll = clamp(group.Scroll or 0, 0, maxScroll)
-
-                -- apply scroll offset and set visibility per section (clip to group viewport)
-                for _,section in next, self.sections do
-                    if section._basePos then
-                        section.objects.background.Position = section._basePos + newUDim2(0,0,0, -(group.Scroll or 0))
                     end
 
-                    -- compute visibility relative to group viewport
-                    local top = section.objects.background.Object.Position.Y - (group.Object and group.Object.Position.Y or 0)
-                    local bottom = top + (section.objects.background.Object.Size.Y or 0)
-                    local visible = (bottom > 0 and top < visibleH) and (section.enabled and self.selected)
-                    section.objects.background.Visible = visible
-
-                    -- update text/top border sizing
                     section:SetText(section.text)
+                    
                 end
             end
+
+            function tab:SetText(str)
+                if typeof(str) == 'string' then
+                    self.text = str;
+                    self.objects.text.Text = str;
+                    window:UpdateTabs();
+                end
+            end
+
+            function tab:Select()
+                window.selectedTab = tab;
+                window:UpdateTabs();
+                for i,v in next, window.tabs do
+                    if v.callback then
+                        v.callback(v == tab)
+                    end
+                end
+            end
+
+            if window.selectedTab == nil then
+                tab:Select();
+            end
+
+            tab:SetText(tab.text);
+            window:UpdateTabs();
+            return tab;
+        end
 
         function window:UpdateTabs()
             table.sort(self.tabs, function(a,b)
