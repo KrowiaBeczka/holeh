@@ -1367,7 +1367,7 @@ objs.columnholder2 = utility:Draw('Square', {
                 Parent = objs.groupBackground;
             })
 
-            window.columnScroll = {
+window.columnScroll = window.columnScroll or {
                 [1] = {scroll = 0, maxScroll = 0},
                 [2] = {scroll = 0, maxScroll = 0}
             }
@@ -4536,6 +4536,13 @@ self.objects.background.Size = newUDim2(1,0,0,ySize)
             end
 
 function tab:UpdateSections()
+                if not window.columnScroll then
+                    window.columnScroll = {
+                        [1] = {scroll = 0, maxScroll = 0},
+                        [2] = {scroll = 0, maxScroll = 0}
+                    }
+                end
+                
                 table.sort(self.sections, function(a,b)
                     return a.order < b.order
                 end)
