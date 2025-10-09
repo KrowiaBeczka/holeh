@@ -1033,31 +1033,25 @@ function library:init()
                 Outline = true;
                 Parent = objs.background;
             });
-            objs.scrolling = Instance.new("ScrollingFrame")
-objs.scrolling.Size = UDim2.new(1,0,1,0)
-objs.scrolling.Position = UDim2.new(0,0,0,0)
-objs.scrolling.BackgroundTransparency = 1
-objs.scrolling.CanvasSize = UDim2.new(0,0,0,0)
-objs.scrolling.ScrollBarThickness = 3
-objs.scrolling.Parent = objs.background
-
-local layout = Instance.new("UIListLayout")
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0,2)
-layout.Parent = objs.scrolling
-
-function objs:UpdateCanvas()
-    local totalHeight = 0
-    for _, child in ipairs(objs.scrolling:GetChildren()) do
-        if child:IsA('GuiObject') then
-            totalHeight = totalHeight + child.Size.Y.Offset + layout.Padding.Offset
-        end
-    end
-    objs.scrolling.CanvasSize = UDim2.new(0,0,0,totalHeight)
-end
+            
+            objs.scrollObjects = {}
+            objs.scrollOffsetY = 0
+            local padding = 2
+            local sectionHeight = objs.background.Size.Y.Offset
 
         end
         --------------------
+        objs.UpdateScroll = function()
+            for _, obj in ipairs(objs.scrollObjects) do
+                local newY = obj.Position.Y.Offset - objs.scrollOffsetY
+                if newY + obj.Size.Y.Offset < 0 or newY > sectionHeight then
+                    obj.Visible = false
+                else
+                    obj.Visible = true
+                    obj.Position = newUDim2(obj.Position.X.Scale, obj.Position.X.Offset, 0, newY)
+                end
+            end
+        end
 
         function indicator:Update()
             local xSize  = 125
