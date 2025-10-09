@@ -1033,25 +1033,9 @@ function library:init()
                 Outline = true;
                 Parent = objs.background;
             });
-            
-            objs.scrollObjects = {}
-            objs.scrollOffsetY = 0
-            local padding = 2
-            local sectionHeight = objs.background.Size.Y.Offset
 
         end
         --------------------
-        objs.UpdateScroll = function()
-            for _, obj in ipairs(objs.scrollObjects) do
-                local newY = obj.Position.Y.Offset - objs.scrollOffsetY
-                if newY + obj.Size.Y.Offset < 0 or newY > sectionHeight then
-                    obj.Visible = false
-                else
-                    obj.Visible = true
-                    obj.Position = newUDim2(obj.Position.X.Scale, obj.Position.X.Offset, 0, newY)
-                end
-            end
-        end
 
         function indicator:Update()
             local xSize  = 125
@@ -2138,6 +2122,130 @@ function library:init()
                     })
                     
                 end
+                function tab:AddBigSection(text, side, order)
+                    local section = {
+                        text = tostring(text);
+                        side = side == nil and 1 or clamp(side,1,2);
+                        order = order or #self.sections+1;
+                        enabled = true;
+                        objects = {};
+                        options = {};
+                    };
+
+                    table.insert(self.sections, section);
+
+                    do
+                        local objs = section.objects;
+                        local z = library.zindexOrder.window + 15
+                        local columnHolder = window.objects['columnholder'..(section.side)]
+                        local columnHeight = columnHolder.Size.Y.Offset
+
+                        objs.background = utility:Draw('Square', {
+                            Size = newUDim2(1,0,1,0);
+                            Position = newUDim2(0,0,0,0);
+                            ThemeColor = 'Section Background';
+                            ZIndex = z;
+                            Parent = columnHolder;
+                        })
+
+                        objs.innerBorder = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,1);
+                            Position = newUDim2(0,-1,0,0);
+                            ThemeColor = 'Border 3';
+                            ZIndex = z-1;
+                            Parent = objs.background;
+                        })
+
+                        objs.outerBorder = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,1);
+                            Position = newUDim2(0,-1,0,0);
+                            ThemeColor = 'Border 1';
+                            ZIndex = z-2;
+                            Parent = objs.innerBorder;
+                        })
+
+                        objs.topBorder1 = utility:Draw('Square', {
+                            Size = newUDim2(.025,1,0,1);
+                            Position = newUDim2(0,-1,0,0);
+                            ThemeColor = 'Accent';
+                            ZIndex = z+1;
+                            Parent = objs.background;
+                        })
+
+                        objs.topBorder2 = utility:Draw('Square', {
+                            ThemeColor = 'Accent';
+                            ZIndex = z+1;
+                            Parent = objs.background;
+                        })
+
+                        objs.textlabel = utility:Draw('Text', {
+                            Position = newUDim2(.0425,0,0,-7);
+                            ThemeColor = 'Primary Text';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+1;
+                            Parent = objs.background;
+                            Text = section.text;
+                        })
+
+                        objs.optionholder = utility:Draw('Square', {
+                            Size = newUDim2(1-.03,0,1,-15);
+                            Position = newUDim2(.015,0,0,13);
+                            Transparency = 0;
+                            ZIndex = z+1;
+                            Parent = objs.background;
+                        })
+
+                        objs.scrollObjects = {}
+                        objs.scrollOffsetY = 0
+                        local padding = 2
+                        local sectionHeight = objs.optionholder.Size.Y.Offset
+
+                        objs.AddElement = function(text)
+                            local yPos = 0
+                            if #objs.scrollObjects > 0 then
+                                local last = objs.scrollObjects[#objs.scrollObjects]
+                                yPos = last.Position.Y.Offset + last.Size.Y.Offset + padding
+                            end
+
+                            local obj = utility:Draw('Text', {
+                                Text = text;
+                                Size = 13;
+                                Font = 2;
+                                Position = newUDim2(0,5,0,yPos);
+                                ThemeColor = 'Primary Text';
+                                ZIndex = z+2;
+                                Parent = objs.optionholder;
+                            })
+
+                            table.insert(objs.scrollObjects, obj)
+                        end
+
+                        objs.UpdateScroll = function()
+                            for _, obj in ipairs(objs.scrollObjects) do
+                                local newY = obj.Position.Y.Offset - objs.scrollOffsetY
+                                if newY + obj.Size.Y.Offset < 0 or newY > sectionHeight then
+                                    obj.Visible = false
+                                else
+                                    obj.Visible = true
+                                    obj.Position = newUDim2(obj.Position.X.Scale, obj.Position.X.Offset, 0, newY)
+                                end
+                            end
+                        end
+
+                        game:GetService("UserInputService").InputChanged:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.MouseWheel then
+                                objs.scrollOffsetY = math.clamp(objs.scrollOffsetY - input.Position.Z, 0, math.max(0, (#objs.scrollObjects * 15) - sectionHeight))
+                                objs.UpdateScroll()
+                            end
+                        end)
+
+                        objs.UpdateScroll()
+                    end
+
+                    return section
+                end
+
                 ----------------------
 
                 function section:SetText(text)
