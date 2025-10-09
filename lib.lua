@@ -1287,13 +1287,26 @@ function library:init()
                 Parent = objs.midBorder;
             })
 
-            objs.groupBackground = utility:Draw('Square', {
+objs.groupBackground = utility:Draw('Square', {
                 Size = newUDim2(1,-16,1,-(16+23));
                 Position = newUDim2(0,8,0,8+23);
                 ThemeColor = 'Group Background';
                 ZIndex = z+5;
                 Parent = objs.background;
             })
+             objs.groupBackground.Scroll = 0
+            objs.groupBackground.ScrollSpeed = 25
+
+            utility:Connection(inputservice.InputChanged, function(inp)
+                if inp.UserInputType == Enum.UserInputType.MouseWheel and library.open then
+                    if utility:MouseOver(objs.groupBackground.Object) then
+                        local delta = 0
+                        pcall(function() delta = inp.Position.Z end)
+                        objs.groupBackground.Scroll = clamp((objs.groupBackground.Scroll or 0) - (delta * objs.groupBackground.ScrollSpeed), 0, math.huge)
+                        window:UpdateTabs()
+                    end
+                end
+            end)
 
             objs.groupInnerBorder = utility:Draw('Square', {
                 Size = newUDim2(1,2,1,2);
@@ -4532,65 +4545,72 @@ function library:init()
                 return section;
             end
 
-            function tab:UpdateSections()
+function tab:UpdateSections()
                 table.sort(self.sections, function(a,b)
                     return a.order < b.order
                 end)
 
-                local last1,last2;
-                local padding = 15;
-                for _,section in next, self.sections do
+                local padding = 15
+                local group = window.objects.groupBackground
+                local visibleH = group.Object and group.Object.Size.Y or 0
 
-                    if section.objects.background.Visible ~= (section.enabled and tab.selected) then
-                        section.objects.background.Visible = section.enabled and tab.selected
-                        section:UpdateOptions();
-                    end
-                    
+                -- first, ensure each section computed its internal sizes
+                for _,section in next, self.sections do
+                    section:UpdateOptions()
+                end
+
+                -- layout base positions (without scroll) per column, preserving existing first-position if set
+                local last1, last2 = nil, nil
+                for _,section in next, self.sections do
                     if section.enabled then
+                        local basePos
                         if section.side == 1 then
                             if last1 then
-                                section.objects.background.Position = last1.objects.background.Position + newUDim2(0,0,0,last1.objects.background.Object.Size.Y + padding);
+                                basePos = last1.objects.background.Position + newUDim2(0,0,0,last1.objects.background.Object.Size.Y + padding)
+                            else
+                                basePos = section.objects.background.Position
                             end
-                            last1 = section;
-                        elseif section.side == 2 then
+                            last1 = section
+                        else
                             if last2 then
-                                section.objects.background.Position = last2.objects.background.Position + newUDim2(0,0,0,last2.objects.background.Object.Size.Y + padding);
+                                basePos = last2.objects.background.Position + newUDim2(0,0,0,last2.objects.background.Object.Size.Y + padding)
+                            else
+                                basePos = section.objects.background.Position
                             end
-                            last2 = section;
+                            last2 = section
                         end
+                        section._basePos = basePos
+                    end
+                end
+
+                -- compute total content height (pixels) for scroll clamping
+                local totalH = 0
+                for _,section in next, self.sections do
+                    if section.enabled and section._basePos then
+                        local endY = section._basePos.Y.Offset + section.objects.background.Object.Size.Y
+                        if endY > totalH then totalH = endY end
+                    end
+                end
+
+                local maxScroll = math.max(0, totalH - visibleH + padding)
+                group.Scroll = clamp(group.Scroll or 0, 0, maxScroll)
+
+                -- apply scroll offset and set visibility per section (clip to group viewport)
+                for _,section in next, self.sections do
+                    if section._basePos then
+                        section.objects.background.Position = section._basePos + newUDim2(0,0,0, -(group.Scroll or 0))
                     end
 
+                    -- compute visibility relative to group viewport
+                    local top = section.objects.background.Object.Position.Y - (group.Object and group.Object.Position.Y or 0)
+                    local bottom = top + (section.objects.background.Object.Size.Y or 0)
+                    local visible = (bottom > 0 and top < visibleH) and (section.enabled and self.selected)
+                    section.objects.background.Visible = visible
+
+                    -- update text/top border sizing
                     section:SetText(section.text)
-                    
                 end
             end
-
-            function tab:SetText(str)
-                if typeof(str) == 'string' then
-                    self.text = str;
-                    self.objects.text.Text = str;
-                    window:UpdateTabs();
-                end
-            end
-
-            function tab:Select()
-                window.selectedTab = tab;
-                window:UpdateTabs();
-                for i,v in next, window.tabs do
-                    if v.callback then
-                        v.callback(v == tab)
-                    end
-                end
-            end
-
-            if window.selectedTab == nil then
-                tab:Select();
-            end
-
-            tab:SetText(tab.text);
-            window:UpdateTabs();
-            return tab;
-        end
 
         function window:UpdateTabs()
             table.sort(self.tabs, function(a,b)
