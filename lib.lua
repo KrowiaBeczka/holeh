@@ -149,29 +149,29 @@ library.themes = {
         }
     },
     {
-        name = 'Nekocheat Blue',
+        name = 'Preset 0',
         theme = {
-            ["Accent"]                    = fromrgb(0, 247, 255);
-            ["Background"]                = fromrgb(18,18,18);
-            ["Border"]                    = fromrgb(0,0,0);
-            ["Border 1"]                  = fromrgb(60,60,60);
-            ["Border 2"]                  = fromrgb(18,18,18);
-            ["Border 3"]                  = fromrgb(10,10,10);
-            ["Primary Text"]              = fromrgb(255,255,255);
-            ["Group Background"]          = fromrgb(18,18,18);
-            ["Selected Tab Background"]   = fromrgb(18,18,18);
-            ["Unselected Tab Background"] = fromrgb(18,18,18);
-            ["Selected Tab Text"]         = fromrgb(245,245,245);
-            ["Unselected Tab Text"]       = fromrgb(145,145,145);
-            ["Section Background"]        = fromrgb(18,18,18);
-            ["Option Text 1"]             = fromrgb(255,255,255);
-            ["Option Text 2"]             = fromrgb(255,255,255);
-            ["Option Text 3"]             = fromrgb(255,255,255);
-            ["Option Border 1"]           = fromrgb(50,50,50);
-            ["Option Border 2"]           = fromrgb(0,0,0);
-            ["Option Background"]         = fromrgb(23,23,23);
-            ["Risky Text"]                = fromrgb(175, 21, 21);
-            ["Risky Text Enabled"]        = fromrgb(255, 41, 41);
+            ["Accent"]                   = fromrgb(100, 255, 140),
+            ["Background"]               = fromrgb(15, 15, 17),
+            ["Border"]                   = fromrgb(35, 35, 38),
+            ["Border 1"]                 = fromrgb(55, 55, 60),
+            ["Border 2"]                 = fromrgb(25, 25, 28),
+            ["Border 3"]                 = fromrgb(10, 10, 12),
+            ["Primary Text"]             = fromrgb(235, 235, 235),
+            ["Group Background"]         = fromrgb(20, 20, 23),
+            ["Selected Tab Background"]  = fromrgb(25, 25, 28),
+            ["Unselected Tab Background"]= fromrgb(15, 15, 17),
+            ["Selected Tab Text"]        = fromrgb(150, 255, 180),
+            ["Unselected Tab Text"]      = fromrgb(145, 145, 145),
+            ["Section Background"]       = fromrgb(18, 18, 20),
+            ["Option Text 1"]            = fromrgb(120, 255, 160),
+            ["Option Text 2"]            = fromrgb(200, 200, 200),
+            ["Option Text 3"]            = fromrgb(150, 150, 150),
+            ["Option Border 1"]          = fromrgb(40, 40, 45),
+            ["Option Border 2"]          = fromrgb(20, 20, 22),
+            ["Option Background"]        = fromrgb(25, 25, 28),
+            ["Risky Text"]               = fromrgb(100, 255, 140),
+            ["Risky Text Enabled"]       = fromrgb(150, 255, 180)
         }
     },
     {
@@ -255,27 +255,27 @@ library.themes = {
     {
         name = 'Preset1',
         theme = {
-            ["Accent"]                 = fromrgb(255, 95, 87),
-            ["Background"]             = fromrgb(24, 24, 26),
-            ["Border"]                 = fromrgb(34, 34, 40),
-            ["Border 1"]               = fromrgb(162, 89, 247),
-            ["Border 2"]               = fromrgb(80, 167, 247),
-            ["Border 3"]               = fromrgb(72, 207, 117),
-            ["Primary Text"]           = fromrgb(255,255,255),
-            ["Group Background"]       = fromrgb(33,33,39),
-            ["Selected Tab Background"]= fromrgb(26,26,30),
-            ["Unselected Tab Background"]= fromrgb(24,24,26),
-            ["Selected Tab Text"]      = fromrgb(255,255,255),
-            ["Unselected Tab Text"]    = fromrgb(161,161,166),
-            ["Section Background"]     = fromrgb(33,33,39),
-            ["Option Text 1"]          = fromrgb(255,190,46),
-            ["Option Text 2"]          = fromrgb(80,167,247),
-            ["Option Text 3"]          = fromrgb(255,95,87),
-            ["Option Border 1"]        = fromrgb(42, 42, 48),
-            ["Option Border 2"]        = fromrgb(34,34,40),
-            ["Option Background"]      = fromrgb(28,28,32),
-            ["Risky Text"]             = fromrgb(249,95,98),
-            ["Risky Text Enabled"]     = fromrgb(255,95,87)
+            ["Accent"]                   = fromrgb(80, 200, 255),
+            ["Background"]               = fromrgb(15, 15, 17),
+            ["Border"]                   = fromrgb(35, 35, 38),
+            ["Border 1"]                 = fromrgb(55, 55, 60),
+            ["Border 2"]                 = fromrgb(25, 25, 28),
+            ["Border 3"]                 = fromrgb(10, 10, 12),
+            ["Primary Text"]             = fromrgb(230, 230, 235),
+            ["Group Background"]         = fromrgb(20, 20, 23),
+            ["Selected Tab Background"]  = fromrgb(25, 25, 28),
+            ["Unselected Tab Background"]= fromrgb(15, 15, 17),
+            ["Selected Tab Text"]        = fromrgb(130, 230, 255),
+            ["Unselected Tab Text"]      = fromrgb(145, 145, 145),
+            ["Section Background"]       = fromrgb(18, 18, 20),
+            ["Option Text 1"]            = fromrgb(100, 220, 255),
+            ["Option Text 2"]            = fromrgb(200, 200, 200),
+            ["Option Text 3"]            = fromrgb(150, 150, 150),
+            ["Option Border 1"]          = fromrgb(40, 40, 45),
+            ["Option Border 2"]          = fromrgb(20, 20, 22),
+            ["Option Background"]        = fromrgb(25, 25, 28),
+            ["Risky Text"]               = fromrgb(0, 180, 255),
+            ["Risky Text Enabled"]       = fromrgb(120, 240, 255)
         }
     },
     {
