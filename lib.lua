@@ -252,7 +252,7 @@ library.themes = {
             ["Risky Text Enabled"]        = fromrgb(255, 41, 41);
         }
     },
-        {
+    {
         name = 'Preset1',
         theme = {
             ["Accent"]                 = fromrgb(255, 95, 87),
@@ -277,9 +277,8 @@ library.themes = {
             ["Risky Text"]             = fromrgb(249,95,98),
             ["Risky Text Enabled"]     = fromrgb(255,95,87)
         }
-
     },
-        {
+    {
         name = 'Preset2',
         theme = {
             ["Accent"]                   = fromrgb(158, 30, 223),
@@ -305,7 +304,6 @@ library.themes = {
             ["Risky Text Enabled"]       = fromrgb(255, 85, 85)
         }
     }
-
 }
 
 local blacklistedKeys = {
@@ -821,20 +819,6 @@ function library:init()
                 end
             end
         end
-
-        -- // Obsługa scrollowania kółkiem myszy
-        utility:Connection(inputservice.InputChanged, function(input)
-            if input.UserInputType == Enum.UserInputType.MouseWheel and window.scroll.focusedObject and window.open then
-                local scrollDelta = input.Position.Z * window.scroll.scrollSpeed
-                local dropdown = window.dropdown
-
-                -- Sprawdzamy, czy scrollujemy dropdown
-                if window.scroll.focusedObject == dropdown.objects.background then
-                    dropdown:Scroll(scrollDelta)
-                end
-            end
-        end)
-
     end)
 
     utility:Connection(inputservice.InputEnded, function(input, gpe)
@@ -871,10 +855,6 @@ function library:init()
                 local hoverObj = utility:GetHoverObject();
                 for _,v in next, library.drawings do
                     local hover = hoverObj == v.Object;
-                    -- // Aktualizacja obiektu do scrollowania
-                    if hover and v.Object.ClipsDescendants then
-                        window.scroll.focusedObject = v.Object
-                    end
                     if hover and not v.Hover then
                         v.Hover = true;
                         v.MouseEnter:Fire(inputservice:GetMouseLocation());
@@ -882,10 +862,6 @@ function library:init()
                         v.Hover = false;
                         v.MouseLeave:Fire(inputservice:GetMouseLocation());
                     end
-                end
-
-                if not hoverObj or not hoverObj.ClipsDescendants then
-                    window.scroll.focusedObject = nil
                 end
 
                 if mb1down then
@@ -1287,12 +1263,6 @@ function library:init()
                 };
                 max = 5;
             }
-        };
-
-        -- Nowe pola do obsługi scrollowania
-        window.scroll = {
-            focusedObject = nil, -- Obiekt, nad którym jest myszka i który można scrollować
-            scrollSpeed = 20 -- Czułość scrollowania
         };
 
         table.insert(library.windows, window);
@@ -1835,7 +1805,6 @@ function library:init()
                     Position = newUDim2(0,3,1,0);
                     ThemeColor = 'Background';
                     ZIndex = z;
-                    ClipsDescendants = true; -- WAŻNE: Włączamy przycinanie potomków!
                     Parent = window.objects.background;
                 })
 
@@ -1871,23 +1840,6 @@ function library:init()
 
             end
 
-            function window.dropdown:Scroll(delta)
-                local objs = self.objects
-                local list = self.selected
-                if not list then return end
-
-                local itemH = objs.itemHeight or 18
-                local pad = objs.padding or 2
-                local totalContentHeight = (#list.values * (itemH + pad)) + 2
-                local viewHeight = objs.background.Object.Size.Y
-                
-                local maxScroll = math.max(0, totalContentHeight - viewHeight)
-                
-                -- Aktualizujemy i ograniczamy pozycję scrolla
-                objs.scroll = clamp((objs.scroll or 0) - delta, 0, maxScroll)
-                self:Refresh()
-            end
-
             function window.dropdown:Refresh()
                 if self.selected ~= nil then
                     local list = self.selected
@@ -1906,7 +1858,6 @@ function library:init()
                                 Color = Color3.new(.25,.25,.25);
                                 Transparency = 0;
                                 ZIndex = library.zindexOrder.dropdown+1;
-                                ClipsDescendants = true; -- Przycinanie dla pojedynczego elementu
                                 Parent = objs.background;
                             })
                             valueObject.text = utility:Draw('Text', {
@@ -1915,7 +1866,6 @@ function library:init()
                                 Text = tostring(value);
                                 Size = 13;
                                 Font = 2;
-                                ClipsDescendants = true;
                                 ZIndex = library.zindexOrder.dropdown+2;
                                 Parent = valueObject.background;
                             })
@@ -2006,6 +1956,36 @@ function library:init()
             end
 
             window.dropdown:Refresh();
+
+            -- mouse-wheel scrolling for dropdown
+            utility:Connection(inputservice.InputChanged, function(inp)
+                if inp.UserInputType == Enum.UserInputType.MouseWheel then
+                    local dd = window.dropdown
+                    local bg = dd.objects and dd.objects.background
+                    if bg and bg.Object and bg.Visible and dd.selected then
+                        local list = dd.selected
+                        local objs = dd.objects
+                        local itemH = objs.itemHeight or 18
+                        local pad = objs.padding or 2
+                        local total = 2
+                        for i=1,#list.values do
+                            total = total + itemH + pad
+                        end
+                        local visible = bg.Object.Size.Y
+                        local maxScroll = math.max(0, total - visible)
+
+                        local delta = 0
+                        pcall(function() delta = inp.Position.Z end)
+                        if delta == 0 then
+                            pcall(function() delta = inp.Position.Y end)
+                        end
+                        -- adjust sensitivity here (20 px per wheel delta)
+                        objs.scroll = clamp((objs.scroll or 0) - (delta * 20), 0, maxScroll)
+
+                        dd:Refresh()
+                    end
+                end
+            end)
 
         end
         -------------------------
